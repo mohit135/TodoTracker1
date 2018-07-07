@@ -68,7 +68,7 @@
                             { name: 'Sparky',status: 1, dueBy: '1993-07-27T22:33:59+04:00', createdOn: '1993-07-27T22:33:59+04:00'}
                           ];
             
-            $scope.data = repeat($scope.data, 5);
+            $scope.data = repeat($scope.data, 6);
             
             // an empty grid: same options, no data.
             $scope.emptyData = [];
@@ -77,6 +77,8 @@
             // utility stuff
             $scope.movePage = function (offset) {
                 $scope.gridConfig.options.pageNum += offset;
+                var data = $scope.gridConfig.getData();
+                $scope.gridConfig.options.pageNum = Math.min($scope.gridConfig.options.pageNum, Math.floor(data.length / $scope.gridConfig.options.pageSize));
                 $scope.gridConfig.options.pageNum = Math.max(0, $scope.gridConfig.options.pageNum);
             };
             
