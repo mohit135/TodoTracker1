@@ -1,25 +1,22 @@
 /*global console:false, angular:false */
 (function () {
     'use strict';
-
-    function repeat(arr, times) {
-        var result = [], i = 0;
-        function push(val) { result.push(angular.copy(val)); }
-        for (i = 0; i < times; i += 1) {
-            angular.forEach(arr, push);
-        }
-        return result;
-    }
     
     angular.module('demo', ['simpleGrid'])
-        .controller('MainCtrl', function ($scope, $filter, $log) {
+        .controller('MainCtrl', function ($scope, $filter, $log, $http) {
+        	$scope.toggle = false;
             // an example grid config
             $scope.gridConfig = {
                 options: {
                     showDeleteButton: true,
                     showEditButton: true,
-                    editRequested: function (row) { console.log('edit request:', row); },
-                    rowDeleted: function (row) { console.log('deleted:', row); },
+                    editRequested: function (row) { /*var task = { name: row.name,
+                    		status: row.status, 
+                    		dueBy: row.dueBy, 
+                    		createdOn: row.createdOn};
+                    		$scope.update(task);*/
+                    },
+                    rowDeleted: function (row) { $scope.delete(row.name); },
                     cellFocused: function (row, column) { console.log('focused:', row, column); },
                     rowSelected: function (row) { console.log('selected:', row); },
                     //orderBy: 'age',
@@ -62,18 +59,95 @@
                 getData: function () { return $scope.data; }
             };
             
-          
-            $scope.data = [ { name: 'Jooka',status: 1, dueBy: '1993-07-27T22:33:59+04:00', createdOn: '1993-07-27T22:33:59+04:00'},
-                            { name: 'Schmo',status: 1, dueBy: '1993-07-27T22:33:59+04:00', createdOn: '1993-07-27T22:33:59+04:00'},
-                            { name: 'Sparky',status: 1, dueBy: '1993-07-27T22:33:59+04:00', createdOn: '1993-07-27T22:33:59+04:00'}
-                          ];
+            $scope.getTodoTasks = function(){
+            	$scope.data = [];
+            	$scope.toggle = true
+            	$http.get("/getTask")
+                .then(function(response) {
+                    //First function handles success
+                	$scope.data = response.data;
+                }, function(response) {
+                    //Second function handles error
+                    $scope.content = "Something went wrong";
+                });
+            }
+            	
+            	
+            	
             
-            $scope.data = repeat($scope.data, 6);
+            $scope.task = { name: '',
+            		status: 0, 
+            		dueBy: '', 
+            		createdOn: ''};
             
-            // an empty grid: same options, no data.
-            $scope.emptyData = [];
-            $scope.gridConfigEmpty = { options: $scope.gridConfig.options, getData: function () { return $scope.emptyData; } };
-
+            
+            $scope.reset = function(){
+            	$scope.task = { name: '',
+                		status: 1, 
+                		dueBy: '', 
+                		createdOn: ''};
+            }
+            
+            $scope.additems = function(){
+            	$scope.toggle = false;
+            	$scope.task = { name: '',
+                		status: 1, 
+                		dueBy: '', 
+                		createdOn: ''
+                			};
+            }
+            
+            $scope.submit = function () {
+                $http({
+                    url: '/setTask',
+                    method: "POST",
+                    data: $scope.task
+                })
+                .then(function(response) {
+                        $scope.info = response.data + ' row added';
+                        console.log('here');
+                        alert($scope.info);
+                        $scope.getTodoTasks();
+                }, 
+                function(response) { 
+                	console.log(response);
+                });
+            }
+            
+            $scope.delete = function (name) {
+                $http({
+                    url: '/deleteTask',
+                    method: "DELETE",
+                    data: name
+                })
+                .then(function(response) {
+                        $scope.info = response.data + ' row Deleted';
+                        console.log('here');
+                        alert($scope.info);
+                        $scope.getTodoTasks();
+                }, 
+                function(response) { 
+                	console.log(response);
+                });
+            }
+            
+            $scope.update = function (row) {
+                $http({
+                    url: '/updateTask',
+                    method: "PUT",
+                    data: row
+                })
+                .then(function(response) {
+                        $scope.info = response.data + ' row Updated';
+                        console.log('here');
+                        alert($scope.info);
+                        $scope.getTodoTasks();
+                }, 
+                function(response) { 
+                	console.log(response);
+                });
+            }
+            
             // utility stuff
             $scope.movePage = function (offset) {
                 $scope.gridConfig.options.pageNum += offset;
@@ -82,25 +156,6 @@
                 $scope.gridConfig.options.pageNum = Math.max(0, $scope.gridConfig.options.pageNum);
             };
             
-            $scope.filterDeleted = function (rows) {
-                // TODO: Exteremly inefficient...
-                var filtered = rows.filter(function (row) { return !row.$deleted; });
-                rows.splice(0, rows.length);
-                angular.forEach(filtered, function (item) {
-                    rows.push(item);
-                });
-            };
-
-            $scope.addRow = function () {
-                var data = $scope.gridConfig.getData();
-                data.push(
-                    {
-                        $added: true,
-                        $editable: true
-                    }
-                );
-                $scope.gridConfig.options.pageNum = Math.floor(data.length / $scope.gridConfig.options.pageSize);
-            };
         });
 
 }());
